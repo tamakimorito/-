@@ -5,8 +5,9 @@ import Header from './components/Header';
 import FileUpload from './components/FileUpload';
 import QueueTable from './components/QueueTable';
 import Controls from './components/Controls';
-import BulkAdd from './components/BulkAdd';
+import BulkOperations from './components/BulkOperations';
 import ConfirmationModal, { ChangeSummary } from './components/ConfirmationModal';
+import ManualModal from './components/ManualModal';
 import { FileIcon } from './components/Icons';
 
 const App: React.FC = () => {
@@ -14,7 +15,7 @@ const App: React.FC = () => {
   const [headers, setHeaders] = useState<string[]>([]);
   const [extensionsToAdd, setExtensionsToAdd] = useState<{ [key: number]: string }>({});
   const [membersToDelete, setMembersToDelete] = useState<{ [key: number]: string[] }>({});
-  const [bulkAddText, setBulkAddText] = useState<string>('');
+  const [bulkOperationText, setBulkOperationText] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [processing, setProcessing] = useState<boolean>(false);
@@ -22,6 +23,7 @@ const App: React.FC = () => {
   const [memberColumn, setMemberColumn] = useState<string | null>(null);
   const [extensionColumn, setExtensionColumn] = useState<string | null>(null);
   const [showConfirmationModal, setShowConfirmationModal] = useState<boolean>(false);
+  const [showManualModal, setShowManualModal] = useState<boolean>(false);
   const [changeSummary, setChangeSummary] = useState<ChangeSummary[]>([]);
 
   const resetState = useCallback(() => {
@@ -29,7 +31,7 @@ const App: React.FC = () => {
     setHeaders([]);
     setExtensionsToAdd({});
     setMembersToDelete({});
-    setBulkAddText('');
+    setBulkOperationText('');
     setError(null);
     setFileName(null);
     setNameColumn(null);
@@ -110,7 +112,7 @@ const App: React.FC = () => {
     if (csvData.length === 0) return;
 
     const newExtensionsToAdd = { ...extensionsToAdd };
-    const bulkExts = bulkAddText
+    const bulkExts = bulkOperationText
       .split(/[\s,;]+/)
       .map(ext => ext.trim())
       .filter(ext => /^\d+$/.test(ext));
@@ -128,8 +130,36 @@ const App: React.FC = () => {
         setExtensionsToAdd(newExtensionsToAdd);
     }
     
-    setBulkAddText(''); // Clear textarea after applying, regardless of valid numbers
-  }, [bulkAddText, csvData, extensionsToAdd]);
+    setBulkOperationText('');
+  }, [bulkOperationText, csvData, extensionsToAdd]);
+
+  const handleApplyBulkDelete = useCallback(() => {
+    if (csvData.length === 0 || !memberColumn) return;
+
+    const bulkExtsToDelete = bulkOperationText
+      .split(/[\s,;]+/)
+      .map(ext => ext.trim())
+      .filter(ext => /^\d+$/.test(ext));
+
+    if (bulkExtsToDelete.length > 0) {
+      const newMembersToDelete = { ...membersToDelete };
+
+      csvData.forEach((row, index) => {
+        const currentMembers = (row[memberColumn!] || '').split(',').map(m => m.trim()).filter(Boolean);
+        const deletionsForThisRow = bulkExtsToDelete.filter(ext => currentMembers.includes(ext));
+        
+        if (deletionsForThisRow.length > 0) {
+            const existingDeletions = newMembersToDelete[index] || [];
+            const combinedDeletions = [...new Set([...existingDeletions, ...deletionsForThisRow])];
+            newMembersToDelete[index] = combinedDeletions;
+        }
+      });
+
+      setMembersToDelete(newMembersToDelete);
+    }
+    
+    setBulkOperationText('');
+  }, [bulkOperationText, csvData, memberColumn, membersToDelete]);
 
 
   const handleRequestGenerate = useCallback(() => {
@@ -233,7 +263,7 @@ const App: React.FC = () => {
     <>
       <div className="min-h-screen flex flex-col bg-slate-900">
         <main className="flex-grow w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-          <Header />
+          <Header onShowManual={() => setShowManualModal(true)} />
           
           {error && (
               <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg relative my-4" role="alert">
@@ -250,11 +280,12 @@ const App: React.FC = () => {
               
               {hasValidData ? (
                   <>
-                      <BulkAdd 
-                        onApply={handleApplyBulkAdd}
-                        text={bulkAddText}
-                        onTextChange={setBulkAddText}
-                        isProcessing={processing}
+                      <BulkOperations
+                          onApplyAdd={handleApplyBulkAdd}
+                          onApplyDelete={handleApplyBulkDelete}
+                          text={bulkOperationText}
+                          onTextChange={setBulkOperationText}
+                          isProcessing={processing}
                       />
                       <QueueTable
                           data={csvData}
@@ -291,6 +322,10 @@ const App: React.FC = () => {
         onConfirm={handleConfirmAndGenerate}
         changes={changeSummary}
         isProcessing={processing}
+      />
+      <ManualModal
+        isOpen={showManualModal}
+        onClose={() => setShowManualModal(false)}
       />
     </>
   );

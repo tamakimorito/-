@@ -1,5 +1,5 @@
 {
-  "name": "CSVコールキュー更新ツール",
+  "name": "コールキュー追加CSV生成マシン",
   "description": "コールキューのCSVファイルにあるメンバーの内線番号を簡単に更新し、Excelなどでの書式問題を回避するためのアプリケーションです。",
   "requestFramePermissions": [],
   "prompt": ""

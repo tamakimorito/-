@@ -9,9 +9,9 @@ interface BulkAddProps {
 
 const BulkAdd: React.FC<BulkAddProps> = ({ onApply, text, onTextChange, isProcessing }) => {
   return (
-    <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700 shadow-lg">
+    <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700 shadow-lg h-full flex flex-col">
       <h2 className="text-2xl font-semibold text-white mb-2">全キューに一括追加 (オプション)</h2>
-      <p className="text-sm text-slate-400 mb-4">
+      <p className="text-sm text-slate-400 mb-4 flex-grow">
         表示されている全てのキューに、内線番号を一括で追加します。番号はカンマ、スペース、改行などで区切って入力してください。
       </p>
       <textarea
